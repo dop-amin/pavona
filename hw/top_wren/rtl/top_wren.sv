@@ -398,6 +398,9 @@ module top_wren
   assign acc_alert_rx = {acc_reg_pkg::NumAlerts{AlertRxTieoff}};
 
   acc #(
+    // Use the generic flip-flop (ASIC) register file for the base and bignum
+    // (WDR) register files, not the FPGA RAM-inferring implementation.
+    .RegFile        (acc_pkg::RegFileFF),
     .AccPQCEn      (AccPQCEn),
     .RndCnstAccKey  (acc_pkg::RndCnstAccKeyDefault),
     .RndCnstAccNonce(acc_pkg::RndCnstAccNonceDefault)
