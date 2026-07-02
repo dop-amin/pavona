@@ -168,17 +168,34 @@ Pieces:
   clock into a conservative ~24 MHz system clock via an MMCM (bypassed under
   Verilator so the wrapper stays lint-clean).
 - [`data/pins_cw310.xdc`](./data/pins_cw310.xdc),
-  [`data/clocks.xdc`](./data/clocks.xdc): pin/clock constraints. Package pins are
-  reused from the reference CW310 pinout; **confirm the JTAG/UART pins against how
-  you physically wire the board.**
+  [`data/clocks.xdc`](./data/clocks.xdc): pin/clock constraints, matching the
+  reference CW310 pinout so the design lands on the board nets opentitantool
+  drives:
+  - `POR_N` -> U22 (the DUT reset opentitantool toggles; config `RESET` = USB_A14),
+  - `UART_RX/TX` -> W24/AA22 (the SAM3U USB-serial `console`),
+  - JTAG -> the USR_DBG debug header (TCK N18, TMS N16, TDI R16, TDO P16,
+    TRST_N U19),
+  - `CFGBVS VCCO` / `CONFIG_VOLTAGE 3.3`.
+- [`util/vivado_setup_hooks.tcl`](./util/vivado_setup_hooks.tcl) +
+  [`util/vivado_hook_write_bitstream_pre.tcl`](./util/vivado_hook_write_bitstream_pre.tcl):
+  set the bitstream `USR_ACCESS` register (post-route). Without it,
+  `opentitantool fpga load-bitstream` fails with
+  `Command 0x3001a001 not found in bitstream`.
 
-The design comes up with an empty SRAM, so load firmware over JTAG (rv_dm
-system-bus access) after programming, or bake a VMEM in via `SramInitFile`.
+Runtime prerequisites on the board (host-side, no rebuild needed):
+- The CW310 external PLL must feed 100 MHz on `IO_CLK`; opentitantool configures
+  this for the `cw310` interface. If the MMCM never locks, reset stays asserted
+  and nothing runs.
+- The design boots from an **empty** SRAM, so load firmware over JTAG (rv_dm
+  system-bus access via an adapter on the USR_DBG header) after programming.
+  Prefer this over baking a VMEM in with `SramInitFile` so iterating on firmware
+  does not require rebuilding the bitstream.
+- The UART baud is set by firmware (the UART NCO); match your host console to it.
 
 Verified in this repo without hardware: the wrapper lints clean under Verilator,
 and `--target=synth --setup` generates a well-formed Vivado project (correct
-part, top module, and constraints). Actual place-and-route/timing closure can
-only be confirmed with Vivado on the board.
+part, top module, constraints, and the USR_ACCESS hook). Place-and-route/timing
+closure can only be confirmed with Vivado on the board.
 
 ## Notable design points
 

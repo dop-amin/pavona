@@ -30,6 +30,13 @@ filesets:
       - data/pins_cw310.xdc
     file_type: xdc
 
+  files_tcl:
+    files:
+      - util/vivado_setup_hooks.tcl: { file_type: tclSource }
+      # Copied by fusesoc into the workroot (where the .eda.yml lives) and
+      # referenced from vivado_setup_hooks.tcl.
+      - util/vivado_hook_write_bitstream_pre.tcl: { file_type: user, copyto: vivado_hook_write_bitstream_pre.tcl }
+
 parameters:
   SramInitFile:
     datatype: str
@@ -49,6 +56,7 @@ targets:
       - files_rtl
       - files_xilinx
       - files_constraints
+      - files_tcl
     toplevel: chip_wren_cw310
     parameters:
       - SramInitFile
