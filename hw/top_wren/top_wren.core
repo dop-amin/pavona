@@ -1,0 +1,57 @@
+CAPI=2:
+# Copyright lowRISC contributors (OpenTitan project).
+# Licensed under the Apache License, Version 2.0, see LICENSE for details.
+# SPDX-License-Identifier: Apache-2.0
+name: "lowrisc:systems:top_wren:0.1"
+description: "Minimal ACC-centric wren toplevel"
+filesets:
+  files_rtl:
+    depend:
+      # Place the top packages first to avoid conflicts.
+      - lowrisc:wren_constants:top_pkg
+      - lowrisc:wren_constants:top_racl_pkg
+      # Real blocks.
+      - lowrisc:ip:acc
+      - lowrisc:egret_ip:rv_core_ibex
+      - lowrisc:ip:rv_dm
+      - lowrisc:ip:uart:0.1
+      - lowrisc:ip:tlul
+      - lowrisc:tlul:adapter_sram
+      - lowrisc:prim:ram_1p_adv
+      - lowrisc:prim:mubi
+      - lowrisc:prim:alert
+      - lowrisc:prim:esc
+      # Packages referenced by tie-offs / stubs.
+      - lowrisc:ip:edn_pkg
+      - lowrisc:ip:keymgr_pkg
+      - lowrisc:ip:kmac_pkg
+      - lowrisc:ip:otp_ctrl_pkg
+      - lowrisc:ip:jtag_pkg
+    files:
+      - rtl/top_wren_pkg.sv
+      - rtl/wren_stubs.sv
+      - rtl/top_wren.sv
+    file_type: systemVerilogSource
+
+  # Select the generic prim implementation for tool builds (Verilator/lint),
+  # otherwise the prim abstraction pulls in the Xilinx/ASAP7 technology cells.
+  files_generic:
+    depend:
+      - lowrisc:prim_generic:all
+
+targets:
+  default:
+    filesets:
+      - files_rtl
+
+  lint:
+    default_tool: verilator
+    filesets:
+      - files_rtl
+      - files_generic
+    toplevel: top_wren
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options:
+          - "-Wno-fatal"

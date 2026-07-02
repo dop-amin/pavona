@@ -442,6 +442,8 @@
 
 - [Reference Tops](./doc/contributing/system_list.md)
 
+  - [Top Wren](./hw/top_wren/README.md)
+
   - [Top Dragonfly](./hw/top_dragonfly/README.md)
     - [Datasheet](./hw/top_dragonfly/doc/datasheet.md)
     - [Memory Map](./hw/top_dragonfly/doc/memory_map.md)
