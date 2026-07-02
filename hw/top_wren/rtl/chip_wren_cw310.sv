@@ -4,21 +4,23 @@
 //
 // CW310 FPGA wrapper for top_wren.
 //
-// This is a minimal, board-bring-up skeleton. It maps the top_wren I/O onto
-// FPGA pins and derives the system clock/reset. It is intentionally simple:
-// there is no pinmux/pad ring in this top, so peripheral pins are wired
-// directly.
+// Maps the top_wren I/O directly onto FPGA pins (there is no pinmux/pad ring in
+// this top) and derives the ~24 MHz system clock from the 100 MHz board clock
+// via clkgen_xil7series. Pin assignments live in data/pins_cw310.xdc and the
+// clock constraint in data/clocks.xdc.
 //
-// TODO(fpga bring-up):
-//   * Replace the pass-through BUFG with a proper MMCM/PLL (clkgen) to hit the
-//     desired core frequency, and add the CW310 XDC pin/clock constraints.
-//   * Confirm JTAG pin polarity/trst handling for the target debug adapter.
-// These require Vivado and the physical board, so they are left as follow-ups.
+// Note: the design comes up with an empty SRAM; load firmware over JTAG (rv_dm
+// system-bus access) after programming the bitstream, or bake a VMEM into
+// synthesis via the SramInitFile parameter.
 
-module chip_wren_cw310 (
+module chip_wren_cw310 #(
+  // Optional firmware image baked into the SRAM at synthesis (VMEM, 32-bit
+  // words). Leave empty to load over JTAG after programming.
+  parameter SramInitFile = ""
+) (
   // Board clock and reset
-  input  logic IO_CLK,      // board reference clock
-  input  logic POR_N,       // power-on reset, active low
+  input  logic IO_CLK,      // board reference clock (100 MHz)
+  input  logic POR_N,       // power-on reset button, active low
 
   // JTAG (rv_dm)
   input  logic JTAG_TCK,
@@ -36,25 +38,27 @@ module chip_wren_cw310 (
   // Clock and reset
   // ---------------------------------------------------------------------------
   logic clk_sys;
+  logic rst_clkgen_n;   // MMCM-locked + POR, still async to clk_sys
   logic rst_sys_n;
 
-  // TODO: replace with an MMCM-based clock generator. For now, buffer the board
-  // clock straight through.
-  BUFG u_clk_buf (
-    .I(IO_CLK),
-    .O(clk_sys)
+  clkgen_xil7series u_clkgen (
+    .clk_i (IO_CLK),
+    .rst_ni(POR_N),
+    .clk_o (clk_sys),
+    .rst_no(rst_clkgen_n)
   );
 
-  // Synchronize the external power-on reset into the system clock domain.
-  logic [1:0] por_sync_q;
-  always_ff @(posedge clk_sys or negedge POR_N) begin
-    if (!POR_N) begin
-      por_sync_q <= 2'b00;
+  // Synchronize reset deassertion into the system clock domain (async assert,
+  // synchronous release).
+  logic [1:0] rst_sync_q;
+  always_ff @(posedge clk_sys or negedge rst_clkgen_n) begin
+    if (!rst_clkgen_n) begin
+      rst_sync_q <= 2'b00;
     end else begin
-      por_sync_q <= {por_sync_q[0], 1'b1};
+      rst_sync_q <= {rst_sync_q[0], 1'b1};
     end
   end
-  assign rst_sys_n = por_sync_q[1];
+  assign rst_sys_n = rst_sync_q[1];
 
   // ---------------------------------------------------------------------------
   // JTAG plumbing
@@ -74,7 +78,9 @@ module chip_wren_cw310 (
   logic uart_tx;
   logic uart_tx_en;
 
-  top_wren u_top_wren (
+  top_wren #(
+    .SramInitFile(SramInitFile)
+  ) u_top_wren (
     .clk_i (clk_sys),
     .rst_ni(rst_sys_n),
     .jtag_i(jtag_req),

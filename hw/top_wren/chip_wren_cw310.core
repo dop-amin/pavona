@@ -1,0 +1,66 @@
+CAPI=2:
+# Copyright lowRISC contributors (OpenTitan project).
+# Licensed under the Apache License, Version 2.0, see LICENSE for details.
+# SPDX-License-Identifier: Apache-2.0
+name: "lowrisc:systems:chip_wren_cw310:0.1"
+description: "Minimal wren toplevel for the ChipWhisperer CW310 board"
+filesets:
+  files_rtl:
+    depend:
+      - lowrisc:systems:top_wren:0.1
+    files:
+      - rtl/clkgen_xil7series.sv
+      - rtl/chip_wren_cw310.sv
+    file_type: systemVerilogSource
+
+  # Xilinx prim implementations for synthesis.
+  files_xilinx:
+    depend:
+      - lowrisc:prim_xilinx:all
+
+  # Generic prim implementations for Verilator lint (the clkgen bypasses the
+  # MMCM under VERILATOR).
+  files_generic:
+    depend:
+      - lowrisc:prim_generic:all
+
+  files_constraints:
+    files:
+      - data/clocks.xdc
+      - data/pins_cw310.xdc
+    file_type: xdc
+
+parameters:
+  SramInitFile:
+    datatype: str
+    description: VMEM image (32-bit words) baked into the SRAM at synthesis.
+    paramtype: vlogparam
+
+targets:
+  default: &default_target
+    filesets:
+      - files_rtl
+      - files_generic
+    toplevel: chip_wren_cw310
+
+  synth:
+    default_tool: vivado
+    filesets:
+      - files_rtl
+      - files_xilinx
+      - files_constraints
+    toplevel: chip_wren_cw310
+    parameters:
+      - SramInitFile
+    tools:
+      vivado:
+        part: "xc7k410tfbg676-1"  # CW310 with K410T
+
+  lint:
+    <<: *default_target
+    default_tool: verilator
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options:
+          - "-Wno-fatal"

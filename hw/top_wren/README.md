@@ -150,10 +150,35 @@ includes a UART-RX monitor that decodes the console and streams it to stdout. It
 
 ## FPGA (CW310)
 
-[`rtl/chip_wren_cw310.sv`](./rtl/chip_wren_cw310.sv) is a structural bring-up
-skeleton: it maps `top_wren` I/O onto FPGA pins and synchronizes the reset. It
-still needs an MMCM/clkgen for the core clock, CW310 XDC pin/clock constraints,
-and a Vivado bitstream target before it can run on hardware.
+The CW310 build is wired through the FuseSoC `synth` (Vivado) target:
+
+```sh
+fusesoc --cores-root=. run --target=synth --tool=vivado \
+  lowrisc:systems:chip_wren_cw310
+# optional: bake firmware in with --SramInitFile=$(pwd)/hw/top_wren/sw/wren_acc_smoke.vmem
+```
+
+The bitstream lands under `build/lowrisc_systems_chip_wren_cw310_*/synth-vivado/`.
+Requires Vivado on `PATH` and the K410T part (`xc7k410tfbg676-1`).
+
+Pieces:
+- [`rtl/chip_wren_cw310.sv`](./rtl/chip_wren_cw310.sv) maps `top_wren` I/O onto
+  FPGA pins and synchronizes reset.
+- [`rtl/clkgen_xil7series.sv`](./rtl/clkgen_xil7series.sv) turns the 100 MHz board
+  clock into a conservative ~24 MHz system clock via an MMCM (bypassed under
+  Verilator so the wrapper stays lint-clean).
+- [`data/pins_cw310.xdc`](./data/pins_cw310.xdc),
+  [`data/clocks.xdc`](./data/clocks.xdc): pin/clock constraints. Package pins are
+  reused from the reference CW310 pinout; **confirm the JTAG/UART pins against how
+  you physically wire the board.**
+
+The design comes up with an empty SRAM, so load firmware over JTAG (rv_dm
+system-bus access) after programming, or bake a VMEM in via `SramInitFile`.
+
+Verified in this repo without hardware: the wrapper lints clean under Verilator,
+and `--target=synth --setup` generates a well-formed Vivado project (correct
+part, top module, and constraints). Actual place-and-route/timing closure can
+only be confirmed with Vivado on the board.
 
 ## Notable design points
 
@@ -196,4 +221,5 @@ The `*En` parameters are the intended extension points:
 * Real `entropy_src` + `csrng` + `edn` chain (the heaviest interconnect).
 * Real `keymgr`, `otp_ctrl`, `lc_ctrl`, `alert_handler`.
 * A real `sram_ctrl` behind a parameter.
-* CW310 clocking + constraints, and (if desired) topgen/Bazel integration.
+* CW310 place-and-route/timing closure on hardware, and (if desired)
+  topgen/Bazel integration.
