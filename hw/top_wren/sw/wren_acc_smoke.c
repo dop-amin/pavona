@@ -35,10 +35,10 @@
 #define UART_WDATA_OFFSET   0x1cu
 
 // UART CTRL fields: bit0 TX enable, bits[31:16] NCO.
-// The Verilator UART monitor (chip_wren_verilator.sv) decodes at
-// UartCyclesPerBit cycles/bit; pick NCO so the bit period matches. Tune this
-// pair together for your target frequency.
-#define UART_NCO            0x0100u
+// The UART bit period is 2**20 / NCO system-clock cycles. NCO = 0x8000 gives 32
+// cycles/bit, which must match uartdpi's FREQ/BAUD ratio in
+// chip_wren_verilator.sv. Keep the two in sync.
+#define UART_NCO            0x8000u
 #define UART_CTRL_TX_EN     0x1u
 // UART STATUS bit: TXFULL is bit0.
 #define UART_STATUS_TXFULL  0x1u
@@ -103,6 +103,9 @@ int main(void) {
     uart_puthex(err);
     uart_puts("\r\n");
   }
+
+  // Completion marker: matches uartdpi's EXIT_STRING so the simulation stops.
+  uart_puts("WREN_EXIT\r\n");
 
   return 0;
 }

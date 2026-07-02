@@ -3,13 +3,14 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 // Minimal Verilator harness for chip_wren_verilator. Drives clk_i/rst_ni and
-// runs the model for a bounded number of cycles. Firmware is preloaded into the
-// SRAM via the SramInitFile RTL parameter (set with a fusesoc vlogparam), so
-// this harness only needs to toggle the clock; the DUT's UART monitor streams
-// decoded console output to stdout, and the model calls $finish when done.
+// runs the model until it finishes. Firmware is preloaded into the SRAM via the
+// SramInitFile RTL parameter (set with a fusesoc vlogparam), so this harness
+// only needs to toggle the clock; the uartdpi model streams the console to
+// stdout and calls $finish when it sees the firmware's completion marker.
+// max_cycles is just a safety cap for a firmware that never prints the marker.
 //
 // Plusargs:
-//   +max_cycles=<n>   Stop after n clock cycles (default 2,000,000).
+//   +max_cycles=<n>   Safety cap on clock cycles (default 500,000).
 
 #include <cstdio>
 #include <cstdlib>
@@ -26,7 +27,7 @@ int main(int argc, char **argv) {
 
   auto *top = new Vchip_wren_verilator;
 
-  unsigned long max_cycles = 2000000;
+  unsigned long max_cycles = 500000;
   if (const char *arg = Verilated::commandArgsPlusMatch("max_cycles=")) {
     // arg is "+max_cycles=<n>"
     const char *eq = std::strchr(arg, '=');

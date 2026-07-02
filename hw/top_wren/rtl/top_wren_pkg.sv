@@ -43,9 +43,9 @@ package top_wren_pkg;
   // (rv_dm mem vs. Ibex Dm* params, ACC internal windows).
   // ---------------------------------------------------------------------------
   localparam logic [31:0] SramBase = 32'h1000_0000;  // 128 KiB code + data
-  localparam logic [31:0] SramMask = 32'h0001_FFFF;
   localparam int unsigned SramSizeBytes = 32'h0002_0000;  // 128 KiB
-  // sram_ctrl stores the RAM as 32-bit words.
+  localparam logic [31:0] SramMask = SramSizeBytes - 1;
+  // The plain SRAM (prim_ram_1p_adv) is organized as 32-bit words.
   localparam int unsigned SramSizeWords = SramSizeBytes / 4;
 
   localparam logic [31:0] RvDmMemBase = 32'h0001_0000;  // debug ROM / mem, 4 KiB

@@ -6,9 +6,10 @@
 //
 // Turns the 100 MHz board clock into a conservative ~24 MHz system clock via an
 // MMCM (same VCO/divider choice as the reference tops, trimmed to one output),
-// and produces a reset that is held until the MMCM locks. Under Verilator the
-// MMCM is bypassed so the CW310 wrapper can be lint-checked without the Xilinx
-// unisim primitives.
+// and produces a reset that is held until the MMCM locks. The Verilator
+// simulation drives top_wren directly and never instantiates this module; the
+// bypass below exists only so the CW310 wrapper can be run through Verilator
+// lint without the Xilinx unisim primitives (BUFG/MMCME2_ADV).
 
 module clkgen_xil7series #(
   parameter bit AddClkBuf = 1

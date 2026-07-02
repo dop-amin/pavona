@@ -9,6 +9,8 @@ filesets:
     depend:
       - lowrisc:systems:top_wren:0.1
       - lowrisc:prim_generic:all
+      - lowrisc:dv_dpi_c:uartdpi
+      - lowrisc:dv_dpi_sv:uartdpi
     files:
       - rtl/chip_wren_verilator.sv: { file_type: systemVerilogSource }
       - rtl/chip_wren_verilator_main.cc: { file_type: cppSource }
